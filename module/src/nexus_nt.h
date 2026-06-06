@@ -31,6 +31,8 @@ typedef int64_t   LONGLONG, LONG_PTR;
 typedef void      VOID, *PVOID;
 typedef ULONG_PTR SIZE_T;
 typedef UCHAR     KIRQL;
+typedef ULONG     *PULONG;
+typedef SIZE_T    *PSIZE_T;
 
 #define STATUS_SUCCESS            ((NTSTATUS)0x00000000)
 #define STATUS_UNSUCCESSFUL       ((NTSTATUS)0xC0000001)

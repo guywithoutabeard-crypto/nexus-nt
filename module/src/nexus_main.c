@@ -14,6 +14,7 @@
 #include <linux/sched/signal.h>
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/uaccess.h>
 
 #include "nexus_nt.h"
