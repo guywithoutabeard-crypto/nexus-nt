@@ -187,11 +187,14 @@ static void *map_pe_image(const void *file_data, size_t file_size,
 	image_size = nt_hdr->OptionalHeader.SizeOfImage;
 	*out_size = image_size;
 
-	image = vmalloc(image_size);
+	image = __vmalloc(image_size, GFP_KERNEL);
 	if (!image)
 		return NULL;
 
 	memset(image, 0, image_size);
+
+	/* Make memory executable for Windows driver code */
+	set_memory_x((unsigned long)image, image_size >> PAGE_SHIFT);
 
 	/* Copy headers */
 	sect = IMAGE_FIRST_SECTION(nt_hdr);
