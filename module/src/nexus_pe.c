@@ -13,7 +13,8 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/string.h>
-#include <linux/moduleloader.h>
+#include <linux/mm.h>
+#include <asm/set_memory.h>
 
 #include "nexus_nt.h"
 #include "nexus_pe.h"
@@ -187,11 +188,18 @@ static void *map_pe_image(const void *file_data, size_t file_size,
 	image_size = nt_hdr->OptionalHeader.SizeOfImage;
 	*out_size = image_size;
 
-	image = module_alloc(image_size);
+	/* Align to page size for set_memory_x */
+	image_size = PAGE_ALIGN(image_size);
+	*out_size = image_size;
+
+	image = __vmalloc(image_size, GFP_KERNEL);
 	if (!image)
 		return NULL;
 
 	memset(image, 0, image_size);
+
+	/* Make executable so Windows driver code can run */
+	set_memory_x((unsigned long)image, image_size >> PAGE_SHIFT);
 
 	/* Copy headers */
 	sect = IMAGE_FIRST_SECTION(nt_hdr);
@@ -203,13 +211,13 @@ static void *map_pe_image(const void *file_data, size_t file_size,
 		if (sect->VirtualAddress + sect->SizeOfRawData > image_size) {
 			pr_err("nexus_nt: section %.*s exceeds image size\n",
 			       IMAGE_SIZEOF_SHORT_NAME, sect->Name);
-			module_memfree(image);
+			vfree(image);
 			return NULL;
 		}
 		if (sect->PointerToRawData + sect->SizeOfRawData > file_size) {
 			pr_err("nexus_nt: section %.*s exceeds file size\n",
 			       IMAGE_SIZEOF_SHORT_NAME, sect->Name);
-			module_memfree(image);
+			vfree(image);
 			return NULL;
 		}
 
@@ -365,21 +373,21 @@ int nexus_pe_load(const void *file_data, size_t file_size,
 	/* Apply relocations */
 	ret = apply_relocations(image, nt);
 	if (ret) {
-		module_memfree(image);
+		vfree(image);
 		return ret;
 	}
 
 	/* Resolve imports */
 	ret = resolve_imports(image, nt);
 	if (ret) {
-		module_memfree(image);
+		vfree(image);
 		return ret;
 	}
 
 	/* Create driver structure */
 	driver = kzalloc(sizeof(*driver), GFP_KERNEL);
 	if (!driver) {
-		module_memfree(image);
+		vfree(image);
 		return -ENOMEM;
 	}
 
