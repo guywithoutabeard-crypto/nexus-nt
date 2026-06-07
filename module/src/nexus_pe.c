@@ -419,7 +419,7 @@ void nexus_pe_unload(struct nexus_driver *driver)
 	pr_info("nexus_nt: unloading driver '%s'\n", driver->name);
 
 	if (driver->image)
-		module_memfree(driver->image);
+		vfree(driver->image);
 
 	kfree(driver);
 }
