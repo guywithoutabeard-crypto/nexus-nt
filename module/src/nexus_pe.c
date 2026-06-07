@@ -14,7 +14,6 @@
 #include <linux/vmalloc.h>
 #include <linux/string.h>
 #include <linux/mm.h>
-#include <asm/set_memory.h>
 
 #include "nexus_nt.h"
 #include "nexus_pe.h"
@@ -198,8 +197,19 @@ static void *map_pe_image(const void *file_data, size_t file_size,
 
 	memset(image, 0, image_size);
 
-	/* Make executable so Windows driver code can run */
-	set_memory_x((unsigned long)image, image_size >> PAGE_SHIFT);
+	/*
+	 * Note: We need executable memory for the Windows driver code.
+	 * We use kallsyms to find set_memory_x at runtime since it's
+	 * not exported to modules.
+	 */
+	{
+		int (*set_mem_x)(unsigned long, int);
+		set_mem_x = (void *)kallsyms_lookup_name("set_memory_x");
+		if (set_mem_x)
+			set_mem_x((unsigned long)image, image_size >> PAGE_SHIFT);
+		else
+			pr_warn("nexus_nt: can't find set_memory_x, code may not be executable\n");
+	}
 
 	/* Copy headers */
 	sect = IMAGE_FIRST_SECTION(nt_hdr);
