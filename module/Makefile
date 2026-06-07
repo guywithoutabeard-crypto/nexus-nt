@@ -1,5 +1,5 @@
 obj-m += nexus_nt.o
-nexus_nt-objs := src/nexus_main.o
+nexus_nt-objs := src/nexus_main.o src/nexus_pe.o
 
 KDIR ?= /lib/modules/$(shell uname -r)/build
 

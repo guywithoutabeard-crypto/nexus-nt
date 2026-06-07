@@ -18,6 +18,7 @@
 #include <linux/uaccess.h>
 
 #include "nexus_nt.h"
+#include "nexus_pe.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("NexusOS Project");
