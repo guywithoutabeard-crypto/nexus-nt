@@ -302,9 +302,79 @@ static int nexus_proc_open(struct inode *inode, struct file *file)
 	return single_open(file, nexus_proc_show, NULL);
 }
 
+static ssize_t nexus_proc_write(struct file *file, const char __user *buf,
+                                 size_t count, loff_t *ppos)
+{
+	char path[256];
+	struct file *f;
+	void *data;
+	loff_t file_size;
+	ssize_t ret;
+	struct nexus_driver *driver;
+
+	if (count >= sizeof(path))
+		return -EINVAL;
+
+	if (copy_from_user(path, buf, count))
+		return -EFAULT;
+
+	path[count] = '\0';
+	if (path[count - 1] == '\n')
+		path[count - 1] = '\0';
+
+	pr_info("nexus_nt: loading driver from %s\n", path);
+
+	f = filp_open(path, O_RDONLY, 0);
+	if (IS_ERR(f)) {
+		pr_err("nexus_nt: can't open %s\n", path);
+		return PTR_ERR(f);
+	}
+
+	file_size = i_size_read(file_inode(f));
+	if (file_size <= 0 || file_size > 64 * 1024 * 1024) {
+		pr_err("nexus_nt: file too large or empty\n");
+		filp_close(f, NULL);
+		return -EINVAL;
+	}
+
+	data = vmalloc(file_size);
+	if (!data) {
+		filp_close(f, NULL);
+		return -ENOMEM;
+	}
+
+	ret = kernel_read(f, data, file_size, &(loff_t){0});
+	filp_close(f, NULL);
+
+	if (ret != file_size) {
+		pr_err("nexus_nt: short read: %zd/%lld\n", ret, file_size);
+		vfree(data);
+		return -EIO;
+	}
+
+	ret = nexus_pe_load(data, file_size, path, &driver);
+	vfree(data);
+
+	if (ret) {
+		pr_err("nexus_nt: failed to load driver\n");
+		return ret;
+	}
+
+	pr_info("nexus_nt: driver loaded, calling DriverEntry...\n");
+	ret = nexus_pe_call_entry(driver);
+
+	if (ret)
+		pr_err("nexus_nt: DriverEntry failed\n");
+	else
+		pr_info("nexus_nt: DriverEntry succeeded!\n");
+
+	return count;
+}
+
 static const struct proc_ops nexus_proc_ops = {
 	.proc_open    = nexus_proc_open,
 	.proc_read    = seq_read,
+	.proc_write   = nexus_proc_write,
 	.proc_lseek   = seq_lseek,
 	.proc_release = single_release,
 };
