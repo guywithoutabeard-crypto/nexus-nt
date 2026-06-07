@@ -14,6 +14,7 @@
 #include <linux/vmalloc.h>
 #include <linux/string.h>
 #include <linux/mm.h>
+#include <linux/kprobes.h>
 
 #include "nexus_nt.h"
 #include "nexus_pe.h"
@@ -197,18 +198,19 @@ static void *map_pe_image(const void *file_data, size_t file_size,
 
 	memset(image, 0, image_size);
 
-	/*
-	 * Note: We need executable memory for the Windows driver code.
-	 * We use kallsyms to find set_memory_x at runtime since it's
-	 * not exported to modules.
-	 */
+	/* Memory needs to be executable for driver code.
+	 * Using kprobes trick to find set_memory_x */
 	{
-		int (*set_mem_x)(unsigned long, int);
-		set_mem_x = (void *)kallsyms_lookup_name("set_memory_x");
-		if (set_mem_x)
-			set_mem_x((unsigned long)image, image_size >> PAGE_SHIFT);
-		else
-			pr_warn("nexus_nt: can't find set_memory_x, code may not be executable\n");
+		typedef int (*set_mem_x_t)(unsigned long, int);
+		struct kprobe kp = { .symbol_name = "set_memory_x" };
+		if (register_kprobe(&kp) == 0) {
+			set_mem_x_t fn = (set_mem_x_t)kp.addr;
+			unregister_kprobe(&kp);
+			fn((unsigned long)image, image_size >> PAGE_SHIFT);
+			pr_info("nexus_nt: set PE memory executable\n");
+		} else {
+			pr_warn("nexus_nt: can't make memory executable\n");
+		}
 	}
 
 	/* Copy headers */
