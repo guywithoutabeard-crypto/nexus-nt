@@ -84,8 +84,8 @@ static struct nt_export nexus_exports[] = {
 	{ "RtlEqualUnicodeString", (void *)stub_return_null },
 
 	/* Misc */
-	{ "DbgPrint", (void *)printk },
-	{ "DbgPrintEx", (void *)printk },
+	{ "DbgPrint", (void *)stub_void },
+	{ "DbgPrintEx", (void *)stub_void },
 	{ "KeBugCheck", (void *)stub_void },
 	{ "KeBugCheckEx", (void *)stub_void },
 	{ "_snwprintf", (void *)stub_return_null },
