@@ -262,6 +262,15 @@ struct service_descriptor_table *NxKeServiceDescriptorTable(void)
 	return &nexus_state.ssdt;
 }
 
+NTSTATUS NxZwQuerySystemInformation(ULONG info_class, PVOID buffer,
+                                     ULONG length, PULONG ret_length)
+{
+	pr_info("nexus_nt: ZwQuerySystemInformation called (class %u)\n", info_class);
+	if (ret_length)
+		*ret_length = 0;
+	return STATUS_NOT_IMPLEMENTED;
+}
+
 /* ===== Proc Interface for Debugging ===== */
 static int nexus_proc_show(struct seq_file *m, void *v)
 {
