@@ -258,6 +258,8 @@ int nexus_pe_load(const void *file_data, size_t file_size,
                   const char *name, struct nexus_driver **out_driver);
 void nexus_pe_unload(struct nexus_driver *driver);
 int nexus_pe_call_entry(struct nexus_driver *driver);
+int nexus_pe_call_entry_v2(struct nexus_driver *driver,
+                            void *driver_object, void *registry_path);
 
 /* ===== NT Export Resolution ===== */
 int nexus_resolve_import(const char *name, void **func);

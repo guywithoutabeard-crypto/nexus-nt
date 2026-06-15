@@ -235,7 +235,7 @@ NTSTATUS NxPsSetCreateProcessNotifyRoutineEx(PCREATE_PROCESS_NOTIFY_ROUTINE_EX c
 UCHAR *NxPsGetProcessImageFileName(PVOID process);
 
 /* Object Manager */
-NTSTATUS NxObRegisterCallbacks(struct ob_callback_registration *reg, PVOID *handle);
+NTSTATUS NxObRegisterCallbacks(PVOID registration, PVOID *handle);
 void NxObUnRegisterCallbacks(PVOID handle);
 
 /* System Information */
